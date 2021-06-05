@@ -1,12 +1,23 @@
-depth_dec_key=alt-j
-depth_inc_key=alt-k
-show_hidden_key=ctrl-f
-exact_key=ctrl-e
-print_key=ctrl-g
+f_depth_dec_key=${F_DEPTH_DEC_KEY:-alt-j}
+f_depth_inc_key=${F_DEPTH_INC_KEY:-alt-k}
+f_show_hidden_key=${F_SHOW_HIDDEN_KEY:-alt-h}
+f_exact_key=${F_EXACT_KEY:-alt-e}
+f_print_key=${F_PRINT_KEY:-alt-p}
+f_f_default_depth=${F_F_DEFAULT_DEPTH:-6}
+f_c_default_depth=${F_C_DEFAULT_DEPTH:-1}
 
-keys=($depth_dec_key,$depth_inc_key,$show_hidden_key,$exact_key,$print_key)
+f_keys=(
+  $f_depth_dec_key
+  $f_depth_inc_key
+  $f_show_hidden_key
+  $f_exact_key
+  $f_print_key
+  f{1..12}
+)
+#replace spaces in list with commas
+f_keys=$(tr ' ' , <<< "$f_keys")
 
-_core() {
+f::core() {
   local path_opt
   local exact_opt
   local header=$header_tmpl
@@ -50,46 +61,50 @@ _core() {
   selection=$(tail +3 <<< "$out")
 
   case "$key" in
-    $depth_dec_key)
+    $f_depth_dec_key)
       let "depth--"
       return 1
       ;;
-    $depth_inc_key)
+    $f_depth_inc_key)
       let "depth++"
       return 1
       ;;
-    $exact_key)
+    f[1-9] | f1[0-2])
+      depth=${key#f}
+      return 1
+      ;;
+    $f_exact_key)
       let "exact = (exact + 1) % 2"
       return 1
       ;;
-    $show_hidden_key)
+    $f_show_hidden_key)
       let "show_hidden = (show_hidden + 1) % 2"
       return 1
       ;;
-    $print_key)
+    $f_print_key)
       print -z "$selection"
       ;;
   esac
   return 0
 }
 
-f() {
-  local show_hidden=1
-  local exact=0
-  local depth=${1:-6}
+f::f() {
+  local show_hidden=${F_SHOW_HIDDEN:-1}
+  local exact={F_EXACT:-0}
+  local depth=${1:-$f_f_default_depth}
   local header_tmpl=':exact: :sh: :depth:'
   local find_opt=(-type f)
   local fzf_opt=(
     --multi
     --preview "highlight -O ansi -l {}"
-    --expect=ctrl-d,enter,${keys[@]}
+    --expect=ctrl-d,enter,${f_keys[@]}
   )
   local query
   local key
   local selection
 
   while true; do
-    _core
+    f::core
     (($?)) && continue
 
     local filelist=()
@@ -110,22 +125,22 @@ f() {
   done
 }
 
-c() {
-  local show_hidden=1
-  local exact=0
-  local depth=${1:-1}
+f::c() {
+  local show_hidden=${F_SHOW_HIDDEN:-1}
+  local exact={F_EXACT:-0}
+  local depth=${1:-$f_c_default_depth}
   local header_tmpl=':exact: :sh: :depth: :pwd:'
   local find_opt=(-type d)
   local fzf_opt=(
     +m
-    --expect=alt-h,alt-l,enter,left,right,${keys[@]}
+    --expect=alt-h,alt-l,enter,left,right,${f_keys[@]}
   )
   local query
   local key
   local selection
 
   while true; do
-    _core
+    f::core
     (($?)) && continue
 
     case "$key" in
@@ -147,35 +162,39 @@ c() {
   done
 }
 
-# cd sideways to sibling directory
-cs() {
-  local dir=$(find .. -mindepth 1 -maxdepth 1 -type d -print 2> /dev/null | fzf +m)
-  cd "$dir"
+f::s() {
+  cd "$(find .. -mindepth 1 -maxdepth 1 -type d -print \
+    2> /dev/null \
+    | fzf +m -0 -1 --cycle)"
 }
 
-# cd to selected parent directory
-# go up n dirs or go to dir in pwd
-u() {
-    case $1 in
-        *[!0-9]*)
-            cd $(pwd | sed -r "s|(.*/$1[^/]*/).*|\1|")
-            ;;
-        '')
-            local declare dirs=()
-            get_parent_dirs() {
-              if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
-              if [[ "${1}" == '/' ]]; then
-                for _dir in "${dirs[@]}"; do echo $_dir; done
-              else
-                get_parent_dirs $(dirname "$1")
-              fi
-            }
-            local dir="$(get_parent_dirs $(realpath "$PWD") | fzf --tac)"
-            cd "$dir"
-            ;;
-        *)
-            cd $(printf "%0.0s../" $(seq 1 $1));
-            ;;
-    esac
+f::u() {
+  case $1 in
+    *[!0-9]*)
+      cd $(pwd | sed -r "s|(.*/$1[^/]*/).*|\1|")
+      ;;
+    '')
+      local declare dirs=()
+      get_parent_dirs() {
+        if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
+        if [[ "${1}" == '/' ]]; then
+          for _dir in "${dirs[@]}"; do echo $_dir; done
+        else
+          get_parent_dirs $(dirname "$1")
+        fi
+      }
+    local dir="$(get_parent_dirs $(realpath "$PWD") | fzf --cycle --tac)"
+    cd "$dir"
+    ;;
+  *)
+    cd $(printf "%0.0s../" $(seq 1 $1));
+    ;;
+  esac
 }
 
+if [[ -z "$F_NO_ALIASES" ]]; then
+  alias ${F_F:-f}=f::f
+  alias ${F_U:-u}=f::u
+  alias ${F_C:-c}=f::c
+  alias ${F_S:-s}=f::s
+fi
