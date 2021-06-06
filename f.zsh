@@ -1,10 +1,13 @@
 f_depth_dec_key=${F_DEPTH_DEC_KEY:-alt-j}
 f_depth_inc_key=${F_DEPTH_INC_KEY:-alt-k}
-f_show_hidden_key=${F_SHOW_HIDDEN_KEY:-alt-h}
+f_show_hidden_key=${F_SHOW_HIDDEN_KEY:-alt-s}
 f_exact_key=${F_EXACT_KEY:-alt-e}
 f_print_key=${F_PRINT_KEY:-alt-p}
 f_f_default_depth=${F_F_DEFAULT_DEPTH:-6}
 f_c_default_depth=${F_C_DEFAULT_DEPTH:-1}
+f_f_to_dir_key=${F_F_TO_DIR_KEY:-alt-d}
+f_c_move_up_key=${F_C_MOVE_UP_KEY:-alt-h}
+f_c_move_down_key=${F_C_MOVE_down_KEY:-alt-l}
 
 f_keys=(
   $f_depth_dec_key
@@ -22,7 +25,7 @@ f::core() {
   local exact_opt
   local header=$header_tmpl
   header=${header/:depth:/$depth}
-  header=${header/:pwd:/$(pwd)}
+  header=${header/:pwd:/$PWD}
 
   # show hidden
   if [ $show_hidden = 1 ]; then
@@ -114,7 +117,7 @@ f::f() {
     done <<< "$selection"
 
     case "$key" in
-      ctrl-d)
+      $f_f_to_dir_key)
         cd "$(dirname "${filelist[-1]}")"
         ;;
       enter)
@@ -144,10 +147,10 @@ f::c() {
     (($?)) && continue
 
     case "$key" in
-      alt-h | left)
+      $f_c_move_up_key | left)
         cd ..
         ;;
-      alt-l | right)
+      $f_c_move_down_key | right)
         cd "$selection"
         query=''
         ;;
