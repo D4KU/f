@@ -100,7 +100,7 @@ f::f() {
   local fzf_opt=(
     --multi
     --preview "highlight -O ansi -l {}"
-    --expect=ctrl-d,enter,${f_keys[@]}
+    --expect=enter,$f_f_to_dir_key,${f_keys[@]}
   )
   local query
   local key
@@ -136,7 +136,7 @@ f::c() {
   local find_opt=(-type d)
   local fzf_opt=(
     +m
-    --expect=alt-h,alt-l,enter,left,right,${f_keys[@]}
+    --expect=enter,left,right,$f_c_move_up_key,$f_c_move_down_key,${f_keys[@]}
   )
   local query
   local key
