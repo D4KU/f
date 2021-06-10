@@ -3,6 +3,7 @@ f_depth_inc_key=${F_DEPTH_INC_KEY:-alt-k}
 f_show_hidden_key=${F_SHOW_HIDDEN_KEY:-alt-s}
 f_exact_key=${F_EXACT_KEY:-alt-e}
 f_print_key=${F_PRINT_KEY:-alt-p}
+f_tag_key=${F_TAG_KEY:-alt-t}
 f_f_default_depth=${F_F_DEFAULT_DEPTH:-6}
 f_c_default_depth=${F_C_DEFAULT_DEPTH:-1}
 f_f_to_dir_key=${F_F_TO_DIR_KEY:-alt-d}
@@ -15,10 +16,12 @@ f_keys=(
   $f_show_hidden_key
   $f_exact_key
   $f_print_key
+  $f_tag_key
   f{1..12}
 )
 #replace spaces in list with commas
 f_keys=$(tr ' ' , <<< "$f_keys")
+f_tagged=()
 
 f::core() {
   local path_opt
@@ -87,13 +90,23 @@ f::core() {
     $f_print_key)
       print -z "$selection"
       ;;
+    $f_tag_key)
+      while IFS= read -r target
+      do
+        # Ensure no duplicates in list
+        if [[ ! " ${f_tagged[@]} " =~ " ${target:a} " ]]
+        then
+          f_tagged+=("${target:a}")
+        fi
+      done <<< "$selection"
+      echo $f_tagged
   esac
   return 0
 }
 
 f::f() {
   local show_hidden=${F_SHOW_HIDDEN:-1}
-  local exact={F_EXACT:-0}
+  local exact=${F_EXACT:-0}
   local depth=${1:-$f_f_default_depth}
   local header_tmpl=':exact: :sh: :depth:'
   local find_opt=(-type f)
@@ -130,7 +143,7 @@ f::f() {
 
 f::c() {
   local show_hidden=${F_SHOW_HIDDEN:-1}
-  local exact={F_EXACT:-0}
+  local exact=${F_EXACT:-0}
   local depth=${1:-$f_c_default_depth}
   local header_tmpl=':exact: :sh: :depth: :pwd:'
   local find_opt=(-type d)
@@ -195,9 +208,55 @@ f::u() {
   esac
 }
 
+f::p() {
+  local destination=.
+  local cmd=(cp -R)
+
+  while [[ $# -gt 0 ]]
+  do
+    case $1 in
+      -m|--move)
+        cmd=(mv)
+        shift
+        ;;
+      -l|--link)
+        cmd=(ln -s)
+        shift
+        ;;
+      -p|--print)
+        echo $f_tagged
+        return 0
+        ;;
+      -h|--help)
+        echo \
+"Usage: p [OPTION] [DIRECTORY]
+Copy selection tagged by 'f' to DIRECTORY.
+Default DIRECTORY is '.'
+  -m, --move   move instead of copy
+  -l, --link   create symlink instead of copy
+  -p, --print  print selection and exit
+  -h, --help   display this help and exit"
+        return 0
+        ;;
+      *)
+        destination="$1"
+        break
+        ;;
+    esac
+  done
+
+  if [ -z "$f_tagged" ]; then
+    echo 'selection empty'
+  else
+    $cmd $f_tagged $destination
+    f_tagged=()
+  fi
+}
+
 if [[ -z "$F_NO_ALIASES" ]]; then
   alias ${F_F:-f}=f::f
   alias ${F_U:-u}=f::u
   alias ${F_C:-c}=f::c
   alias ${F_S:-s}=f::s
+  alias ${F_P:-p}=f::p
 fi
