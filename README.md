@@ -28,6 +28,9 @@ parent directory. For example, executing `u foo` in `\home\foo\bar` moves to
 
 Fuzzy-select a sibling directory to change directories *sideways*.
 
+#### p
+
+Copy or move files and directories tagged by *f* and *c*.
 
 # Installation
 
@@ -48,13 +51,16 @@ further customization:
 | -------- | ------ |:-------:|
 | F_F_DEFAULT_DEPTH | Search depth set when starting the `f` command | 6 |
 | F_C_DEFAULT_DEPTH | Search depth set when starting the `c` command | 1 |
+| F_EXACT | If 1, exact mode is enabled by default | 0 |
+| F_SHOW_HIDDEN | If 1, hidden files and directories are shown by default | 1 |
+| F_F, F_C, F_U, F_S, F_P | Alias override for each command | |
 | F_NO_ALIASES | No aliases are created. See [Manual aliasing](#manual-aliasing) to create them manually. | 0 |
 
 
 ### Manual aliasing
 
 Add this to your rc-file to override the default command names with `a`, `b`, `c`,
-`d`, respectively.
+`d`, `e`, respectively.
 
 ```
 export F_NO_ALIASES=1
@@ -62,6 +68,7 @@ alias a=f::f
 alias b=f::c
 alias c=f::u
 alias d=f::s
+alias e=f::p
 ```
 
 
@@ -74,7 +81,7 @@ by this plugin:
 <table>
     <thead>
         <tr>
-            <th>Key</th>
+            <th>Default</th>
             <th>Variable</th>
             <th>Commands</th>
             <th>Function</th>
@@ -111,7 +118,7 @@ by this plugin:
         <tr>
             <td>Alt-J</td>
             <td>F_DEPTH_DEC_KEY</td>
-            <td rowspan=5>f, c</td>
+            <td rowspan=6>f, c</td>
             <td>Decrease search depth</td>
         </tr>
         <tr>
@@ -128,6 +135,11 @@ by this plugin:
             <td>Alt-S</td>
             <td>F_SHOW_HIDDEN_KEY</td>
             <td>Toggle hidden files</td>
+        </tr>
+        <tr>
+            <td>Alt-T</td>
+            <td>F_TAG_KEY</td>
+            <td>Tag file for a later command to operate on</td>
         </tr>
         <tr>
             <td>F[1-12]</td>
