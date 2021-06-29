@@ -134,7 +134,7 @@ f::f() {
         cd "$(dirname "${filelist[-1]}")"
         ;;
       enter)
-        [[ -n "$selection" ]] && ${EDITOR:-vim} "${filelist[@]}"
+         ${EDITOR:-vim} "${filelist[@]}"
         ;;
     esac
     return 0
@@ -208,49 +208,55 @@ f::u() {
   esac
 }
 
-f::p() {
-  local destination=.
-  local cmd=(cp -R)
+f::t() {
+  # print files if no argument given
+  [[ $# -eq 0 ]] && echo "$f_tagged" && return 0
 
-  while [[ $# -gt 0 ]]
-  do
+  local cmd=()
+  while [[ $# -gt 0 ]]; do
     case $1 in
-      -m|--move)
-        cmd=(mv)
-        shift
-        ;;
-      -l|--link)
-        cmd=(ln -s)
-        shift
-        ;;
-      -p|--print)
-        echo $f_tagged
-        return 0
-        ;;
       -h|--help)
         echo \
-"Usage: p [OPTION] [DIRECTORY]
-Copy selection tagged by 'f' to DIRECTORY.
-Default DIRECTORY is '.'
-  -m, --move   move instead of copy
-  -l, --link   create symlink instead of copy
-  -p, --print  print selection and exit
-  -h, --help   display this help and exit"
+"Usage: t [OPTION] [COMMAND]
+Execute COMMAND on files tagged by 'f'.
+Prints files and exits if no argument given.
+Example: t -k mv - ~ (move files to home and keep them tagged)
+
+Options:
+  -c, --clear  untag files and exit
+  -k, --keep   keep files tagged
+  -h, --help   display this help and exit
+  -            expanded to tagged files; appended if not specified"
         return 0
         ;;
+      -c|--clear)
+        f_tagged=()
+        return 0
+        ;;
+      -k|--keep)
+        local keep=1
+        shift
+        ;;
+      -)
+        local placeholder=1
+        cmd=(${cmd[@]} ${f_tagged[@]})
+        shift
+        ;;
       *)
-        destination="$1"
-        break
+        cmd+="$1"
+        shift
         ;;
     esac
   done
 
-  if [ -z "$f_tagged" ]; then
-    echo 'selection empty'
-  else
-    $cmd $f_tagged $destination
-    f_tagged=()
-  fi
+  # append list if no placeholder was used
+  [ -z $placeholder ] && cmd=(${cmd[@]} ${f_tagged[@]})
+
+  # execute given command
+  $cmd
+
+  # clear files
+  [ -z $keep ] && f_tagged=()
 }
 
 if [[ -z "$F_NO_ALIASES" ]]; then
@@ -258,5 +264,5 @@ if [[ -z "$F_NO_ALIASES" ]]; then
   alias ${F_U:-u}=f::u
   alias ${F_C:-c}=f::c
   alias ${F_S:-s}=f::s
-  alias ${F_P:-p}=f::p
+  alias ${F_T:-t}=f::t
 fi

@@ -28,9 +28,9 @@ parent directory. For example, executing `u foo` in `\home\foo\bar` moves to
 
 Fuzzy-select a sibling directory to change directories *sideways*.
 
-#### p
+#### t
 
-Copy or move files and directories tagged by *f* and *c*.
+Execute a command on files or directories tagged by *f* and *c*.
 
 # Installation
 
@@ -53,7 +53,7 @@ further customization:
 | F_C_DEFAULT_DEPTH | Search depth set when starting the `c` command | 1 |
 | F_EXACT | If 1, exact mode is enabled by default | 0 |
 | F_SHOW_HIDDEN | If 1, hidden files and directories are shown by default | 1 |
-| F_F, F_C, F_U, F_S, F_P | Alias override for each command | |
+| F_F, F_C, F_U, F_S, F_T | Alias override for each command | |
 | F_NO_ALIASES | No aliases are created. See [Manual aliasing](#manual-aliasing) to create them manually. | 0 |
 
 
@@ -68,7 +68,7 @@ alias a=f::f
 alias b=f::c
 alias c=f::u
 alias d=f::s
-alias e=f::p
+alias e=f::t
 ```
 
 
