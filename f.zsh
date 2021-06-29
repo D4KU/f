@@ -212,31 +212,46 @@ f::t() {
   # print files if no argument given
   [[ $# -eq 0 ]] && echo "$f_tagged" && return 0
 
-  local cmd=()
   while [[ $# -gt 0 ]]; do
     case $1 in
       -h|--help)
         echo \
 "Usage: t [OPTION] [COMMAND]
-Execute COMMAND on files tagged by 'f'.
-Prints files and exits if no argument given.
+Execute COMMAND on files or directories tagged by 'f' and 'c'.
+Prints selection and exits if no argument given.
 Example: t -k mv - ~ (move files to home and keep them tagged)
 
 Options:
-  -c, --clear  untag files and exit
-  -k, --keep   keep files tagged
+  -c, --clear  clear selection and exit
+  -k, --keep   don't clear selection afterward
   -h, --help   display this help and exit
-  -            expanded to tagged files; appended if not specified"
+
+Argument '-' is expanded to selection and appended if not specified."
         return 0
         ;;
       -c|--clear)
         f_tagged=()
         return 0
         ;;
+      -)
+        echo "Missing command. See 't --help'."
+        return 1
+        ;;
       -k|--keep)
         local keep=1
         shift
         ;;
+      *)
+        # Something unknown was passed. Don't listen to own options
+        # anymore. Continue in second loop.
+        break
+        ;;
+    esac
+  done
+
+  local cmd=()
+  while [[ $# -gt 0 ]]; do
+    case $1 in
       -)
         local placeholder=1
         cmd=(${cmd[@]} ${f_tagged[@]})
