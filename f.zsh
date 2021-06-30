@@ -23,6 +23,18 @@ f_keys=(
 f_keys=$(tr ' ' , <<< "$f_keys")
 f_tagged=()
 
+f_help_templ=\
+"Keybindings:
+  Enter\t\tExit and move into selected directory
+  :insert:
+  $f_depth_dec_key\t\tDecrease search depth
+  $f_depth_inc_key\t\tIncrease search depth
+  $f_exact_key\t\tToggle fzf --exact option
+  $f_show_hidden_key\t\tToggle visibilty of hidden :sel: (beginning with '.')
+  $f_tag_key\t\tTag :sel: to execute command on it via 't' (see 't --help')
+  F[1-12]\tSet search depth
+Consult 'man fzf' for more keybindings."
+
 f::core() {
   local path_opt
   local exact_opt
@@ -105,6 +117,15 @@ f::core() {
 }
 
 f::f() {
+  if [[ $1 == '--help' ]]; then
+    echo "Open selected files in ${EDITOR:-vim}."
+    local help=\
+"$f_f_to_dir_key\t\tExit and move to (lastly) selected file's directory"
+    help=${f_help_templ/:insert:/$help}
+    echo ${help//:sel:/'files'}
+    return 0
+  fi
+
   local show_hidden=${F_SHOW_HIDDEN:-1}
   local exact=${F_EXACT:-0}
   local depth=${1:-$f_f_default_depth}
@@ -142,6 +163,16 @@ f::f() {
 }
 
 f::c() {
+  if [[ $1 == '--help' ]]; then
+    echo "Change to selected directory."
+    local help=\
+"$f_c_move_down_key\t\tMove into selected directory, don't exit
+  $f_c_move_up_key\t\tMove one directory up, don't exit"
+    help=${f_help_templ/:insert:/$help}
+    echo ${help//:sel:/'directories'}
+    return 0
+  fi
+
   local show_hidden=${F_SHOW_HIDDEN:-1}
   local exact=${F_EXACT:-0}
   local depth=${1:-$f_c_default_depth}
@@ -188,7 +219,7 @@ f::u() {
   case $1 in
     --help)
       echo \
-"Usage: u [PATTERN]
+"Usage: ${F_U:-u} [PATTERN]
 Move up to parent directory matching PATTERN.
 If passed nothing, the directory can be chosen via fzf.
 
@@ -235,7 +266,7 @@ f::t() {
     case $1 in
       -h|--help)
         echo \
-"Usage: t [OPTION] [COMMAND]
+"Usage: ${F_T:-t} [OPTION] [COMMAND]
 Execute COMMAND on files or directories tagged by 'f' and 'c'.
 Prints selection and exits if no argument given.
 Example: t -k mv - ~ (move files to home and keep them tagged)
