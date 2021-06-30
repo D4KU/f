@@ -20,9 +20,9 @@ filtering, toggling of fuzzy/exact matching, and a controllable search depth.
 #### u
 
 Move *up* to any parent directory. Given an integer *N* as argument, it moves
-up *N* directories. Given a string, it tries to move to match it to a target
-parent directory. For example, executing `u foo` in `\home\foo\bar` moves to
-`\home\foo`. If no argument is given, a directory can be chosen via *fzf*.
+up *N* directories. Given a string, it tries to match it to a target parent
+directory. For example, executing `u fo` in `\home\foobar\baz` moves to
+`\home\foobar`. If no argument is given, a directory can be chosen via *fzf*.
 
 #### s
 

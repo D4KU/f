@@ -186,25 +186,44 @@ f::s() {
 
 f::u() {
   case $1 in
-    *[!0-9]*)
-      cd $(pwd | sed -r "s|(.*/$1[^/]*/).*|\1|")
+    --help)
+      echo \
+"Usage: u [PATTERN]
+Move up to parent directory matching PATTERN.
+If passed nothing, the directory can be chosen via fzf.
+
+Patterns:
+  --help     Print this message and exit
+  [INTEGER]  Move up INTEGER directories
+  [WORD]     Move to closest parent directory beginning with WORD"
+      return
       ;;
     '')
-      local declare dirs=()
-      get_parent_dirs() {
-        if [[ -d "${1}" ]]; then dirs+=("$1"); else return; fi
-        if [[ "${1}" == '/' ]]; then
-          for _dir in "${dirs[@]}"; do echo $_dir; done
-        else
-          get_parent_dirs $(dirname "$1")
-        fi
-      }
-    local dir="$(get_parent_dirs $(realpath "$PWD") | fzf --cycle --tac)"
-    cd "$dir"
-    ;;
-  *)
-    cd $(printf "%0.0s../" $(seq 1 $1));
-    ;;
+      # remove last path segment and push result on stack until only
+      # root dir '/' remains
+      local remain="$PWD"
+      while [[ -d $remain ]] && [[ $remain != '/' ]]
+      do
+        remain=$(dirname "$remain")
+        # the stack: a string with paths separated by newlines
+        local dirs="${dirs}\n${remain}"
+      done
+
+      # pipe stack to fzf
+      # the first entry is an empty line and needs removal
+      cd "$(echo $dirs | sed '/^$/d' | fzf --cycle)"
+      ;;
+    *[!0-9]*)
+      # not a pure number was passed
+      # find a dir in the current path beginning with the passed string
+      # and jump to it
+      cd "$(pwd | sed -r "s_(.*/$1[^/]*/).*_\1_")"
+      ;;
+    *)
+      # matched a number
+      # concatenate as many '../' as the passed number
+      cd $(printf "%0.0s../" $(seq 1 $1))
+      ;;
   esac
 }
 
