@@ -1,3 +1,9 @@
+f_highlight_cmd=${F_HIGHLIGHT_CMD:-'highlight -O ansi -l {}-l'}
+f_f_cmd=${F_F:-f}
+f_u_cmd=${F_U:-u}
+f_c_cmd=${F_C:-c}
+f_s_cmd=${F_S:-s}
+f_t_cmd=${F_T:-t}
 f_depth_dec_key=${F_DEPTH_DEC_KEY:-alt-j}
 f_depth_inc_key=${F_DEPTH_INC_KEY:-alt-k}
 f_show_hidden_key=${F_SHOW_HIDDEN_KEY:-alt-s}
@@ -19,23 +25,33 @@ f_keys=(
   $f_tag_key
   f{1..12}
 )
-#replace spaces in list with commas
+# replace spaces in list with commas
 f_keys=$(tr ' ' , <<< "$f_keys")
+
+# storage for user selection
 f_tagged=()
 
-f_help_templ=\
-"Keybindings:
-  Enter\t\tExit and move into selected directory
-  :insert:
+f::core() {
+  local f_help_templ=\
+":header:
+Keybindings:
+  :keyinsert:
   $f_depth_dec_key\t\tDecrease search depth
   $f_depth_inc_key\t\tIncrease search depth
   $f_exact_key\t\tToggle fzf --exact option
-  $f_show_hidden_key\t\tToggle visibilty of hidden :sel: (beginning with '.')
-  $f_tag_key\t\tTag :sel: to execute command on it via 't' (see 't --help')
+  $f_show_hidden_key\t\tToggle visibilty of hidden :type: (beginning with '.')
+  $f_tag_key\t\tTag :type: to execute command on it via '${f_t_cmd}' (see '${f_t_cmd} --help')
   F[1-12]\tSet search depth
 Consult 'man fzf' for more keybindings."
 
-f::core() {
+  if [[ $1 == '--help' ]]; then
+    # replace placeholders in help template, then print
+    local help=${f_help_templ/:header:/$help_header}
+    help=${help/:keyinsert:/$help_keyinsert}
+    echo ${help//:type:/$help_type}
+    return 0
+  fi
+
   local path_opt
   local exact_opt
   local header=$header_tmpl
@@ -46,18 +62,23 @@ f::core() {
   if [ $show_hidden = 1 ]; then
     header=${header/:sh:/all}
   else
+    # filter passed to 'find'
     path_opt='*/\.*'
     header=${header/:sh:/normal}
   fi
 
-  # exact
+  # exact mode
   if [ $exact = 1 ]; then
+    # option passed to fzf
     exact_opt='--exact'
     header=${header/:exact:/exact}
   else
     header=${header/:exact:/fuzzy}
   fi
 
+  # this is the heart
+  # find targets and pipe them to fzf
+  # sed removes the './' in front of all entries
   local out=$(find . \
       ${find_opt[@]} \
       -not \
@@ -74,17 +95,22 @@ f::core() {
       --header="$header" \
       --preview-window=border-none)
 
+  # send information to calling function
+  # first output line
   query=$(head -1 <<< "$out")
+  # second line
   key=$(head -2 <<< "$out" | tail -1)
+  # subsequent lines
   selection=$(tail +3 <<< "$out")
 
+  # test keys valid for all callers
   case "$key" in
     $f_depth_dec_key)
-      let "depth--"
+      ((depth--))
       return 1
       ;;
     $f_depth_inc_key)
-      let "depth++"
+      ((depth++))
       return 1
       ;;
     f[1-9] | f1[0-2])
@@ -92,11 +118,11 @@ f::core() {
       return 1
       ;;
     $f_exact_key)
-      let "exact = (exact + 1) % 2"
+      ((exact = !exact))
       return 1
       ;;
     $f_show_hidden_key)
-      let "show_hidden = (show_hidden + 1) % 2"
+      ((show_hidden = !show_hidden))
       return 1
       ;;
     $f_print_key)
@@ -116,16 +142,9 @@ f::core() {
   return 0
 }
 
+# open file
 f::f() {
-  if [[ $1 == '--help' ]]; then
-    echo "Open selected files in ${EDITOR:-vim}."
-    local help=\
-"$f_f_to_dir_key\t\tExit and move to (lastly) selected file's directory"
-    help=${f_help_templ/:insert:/$help}
-    echo ${help//:sel:/'files'}
-    return 0
-  fi
-
+  # variables read inside f::core
   local show_hidden=${F_SHOW_HIDDEN:-1}
   local exact=${F_EXACT:-0}
   local depth=${1:-$f_f_default_depth}
@@ -133,23 +152,36 @@ f::f() {
   local find_opt=(-type f)
   local fzf_opt=(
     --multi
-    --preview "highlight -O ansi -l {}"
+    --preview "$f_highlight_cmd"
     --expect=enter,$f_f_to_dir_key,${f_keys[@]}
   )
+  local help_type='files'
+  local help_header="Open selected files in ${EDITOR:-editor}."
+  local help_keyinsert=\
+"Enter\t\tExit and open selected files
+  $f_f_to_dir_key\t\tExit and move to (lastly) selected file's directory"
+
+  # variables set inside f::core
+  # text user typed into fzf
   local query
+  # key user pressed to exit fzf
   local key
+  # selected entries
   local selection
 
   while true; do
-    f::core
+    f::core $1
+    # continue if '1' was returned
     (($?)) && continue
 
+    # convert newline-separated selection list into array
     local filelist=()
     while IFS= read -r file
     do
       filelist+=("$file")
     done <<< "$selection"
 
+    # parse keys specific to this function
     case "$key" in
       $f_f_to_dir_key)
         cd "$(dirname "${filelist[-1]}")"
@@ -162,17 +194,9 @@ f::f() {
   done
 }
 
+# change to child directory
 f::c() {
-  if [[ $1 == '--help' ]]; then
-    echo "Change to selected directory."
-    local help=\
-"$f_c_move_down_key\t\tMove into selected directory, don't exit
-  $f_c_move_up_key\t\tMove one directory up, don't exit"
-    help=${f_help_templ/:insert:/$help}
-    echo ${help//:sel:/'directories'}
-    return 0
-  fi
-
+  # variables read inside f::core
   local show_hidden=${F_SHOW_HIDDEN:-1}
   local exact=${F_EXACT:-0}
   local depth=${1:-$f_c_default_depth}
@@ -182,44 +206,58 @@ f::c() {
     +m
     --expect=enter,left,right,$f_c_move_up_key,$f_c_move_down_key,${f_keys[@]}
   )
+  local help_type='directories'
+  local help_header='Change to selected directory.'
+  local help_keyinsert=\
+"Enter\t\tExit and move into selected directory
+  $f_c_move_down_key\t\tMove into selected directory, don't exit
+  $f_c_move_up_key\t\tMove one directory up, don't exit"
+
+  # variables set inside f::core
+  # text user typed into fzf
   local query
+  # key user pressed to exit fzf
   local key
+  # selected entries
   local selection
 
   while true; do
-    f::core
+    f::core $1
+    # continue if '1' was returned
     (($?)) && continue
 
+    # parse keys specific to this function
     case "$key" in
-      $f_c_move_up_key | left)
+      $f_c_move_up_key|left)
         cd ..
+        continue
         ;;
-      $f_c_move_down_key | right)
+      $f_c_move_down_key|right)
         cd "$selection"
         query=''
+        continue
         ;;
       enter)
         cd "$selection"
-        return 0
-        ;;
-      *)
-        return 0
         ;;
     esac
+    return 0
   done
 }
 
+# change to sibling directory
 f::s() {
   cd "$(find .. -mindepth 1 -maxdepth 1 -type d -print \
     2> /dev/null \
     | fzf +m -0 -1 --cycle)"
 }
 
+# change to parent directory
 f::u() {
   case $1 in
     --help)
       echo \
-"Usage: ${F_U:-u} [PATTERN]
+"Usage: ${f_u_cmd} [PATTERN]
 Move up to parent directory matching PATTERN.
 If passed nothing, the directory can be chosen via fzf.
 
@@ -258,6 +296,7 @@ Patterns:
   esac
 }
 
+# operate on tagged files
 f::t() {
   # print files if no argument given
   [[ $# -eq 0 ]] && echo "$f_tagged" && return 0
@@ -266,10 +305,10 @@ f::t() {
     case $1 in
       -h|--help)
         echo \
-"Usage: ${F_T:-t} [OPTION] [COMMAND]
-Execute COMMAND on files or directories tagged by 'f' and 'c'.
+"Usage: ${f_t_cmd} [OPTION] [COMMAND]
+Execute COMMAND on files or directories tagged by '${f_f_cmd}' and '${f_c_cmd}'.
 Prints selection and exits if no argument given.
-Example: t -k mv - ~ (move files to home and keep them tagged)
+Example: ${f_t_cmd} -k mv - ~ (move files to home and keep them tagged)
 
 Options:
   -c, --clear  clear selection and exit
@@ -284,7 +323,7 @@ Argument '-' is expanded to selection and appended if not specified."
         return 0
         ;;
       -)
-        echo "Missing command. See 't --help'."
+        echo "Missing command. See '${f_t_cmd} --help'."
         return 1
         ;;
       -k|--keep)
@@ -325,9 +364,9 @@ Argument '-' is expanded to selection and appended if not specified."
 }
 
 if [[ -z "$F_NO_ALIASES" ]]; then
-  alias ${F_F:-f}=f::f
-  alias ${F_U:-u}=f::u
-  alias ${F_C:-c}=f::c
-  alias ${F_S:-s}=f::s
-  alias ${F_T:-t}=f::t
+  alias ${f_f_cmd}=f::f
+  alias ${f_u_cmd}=f::u
+  alias ${f_c_cmd}=f::c
+  alias ${f_s_cmd}=f::s
+  alias ${f_t_cmd}=f::t
 fi
