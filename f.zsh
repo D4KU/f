@@ -1,4 +1,4 @@
-f_highlight_cmd=${F_HIGHLIGHT_CMD:-'highlight -O ansi -l {}-l'}
+f_highlight_cmd=${F_HIGHLIGHT_CMD:-'highlight --force -O ansi {}'}
 f_f_cmd=${F_F:-f}
 f_u_cmd=${F_U:-u}
 f_c_cmd=${F_C:-c}
@@ -247,9 +247,19 @@ f::c() {
 
 # change to sibling directory
 f::s() {
-  cd "$(find .. -mindepth 1 -maxdepth 1 -type d -print \
+  if [[ $1 == '--help' ]]; then
+    echo "Change to sibling directory sideways"
+    return 0
+  fi
+
+  # find > remove '../' > fzf
+  local dir=$(find .. -mindepth 1 -maxdepth 1 -type d \
     2> /dev/null \
-    | fzf +m -0 -1 --cycle)"
+    | sed 's|^\.\./||' \
+    | fzf +m -0 -1 --cycle)
+
+  # if dir is not empty, add '../' again
+  [[ ! -z $dir ]] && cd "../$dir"
 }
 
 # change to parent directory
