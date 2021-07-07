@@ -296,7 +296,7 @@ Patterns:
       # not a pure number was passed
       # find a dir in the current path beginning with the passed string
       # and jump to it
-      cd "$(pwd | sed -r "s_(.*/$1[^/]*/).*_\1_")"
+      cd "$(pwd | sed -r "s|(.*/$1[^/]*/).*|\1|")"
       ;;
     *)
       # matched a number
