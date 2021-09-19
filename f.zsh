@@ -89,11 +89,9 @@ Consult 'man fzf' for more keybindings."
     | sed 's|^\./||' \
     | fzf ${fzf_opt[@]} \
       $exact_opt \
-      --cycle \
       --print-query \
       --query="$query" \
-      --header="$header" \
-      --preview-window=border-none)
+      --header="$header")
 
   # send information to calling function
   # first output line
@@ -256,7 +254,7 @@ f::s() {
   local dir=$(find .. -mindepth 1 -maxdepth 1 -type d \
     2> /dev/null \
     | sed 's|^\.\./||' \
-    | fzf +m -0 -1 --cycle)
+    | fzf +m -0 -1)
 
   # if dir is not empty, add '../' again
   [[ ! -z $dir ]] && cd "../$dir"
@@ -290,7 +288,7 @@ Patterns:
 
       # pipe stack to fzf
       # the first entry is an empty line and needs removal
-      cd "$(echo $dirs | sed '/^$/d' | fzf --cycle)"
+      cd "$(echo $dirs | sed '/^$/d' | fzf)"
       ;;
     *[!0-9]*)
       # not a pure number was passed
