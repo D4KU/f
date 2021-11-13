@@ -55,6 +55,7 @@ further customization:
 | F_SHOW_HIDDEN | If 1, hidden files and directories are shown by default | 1 |
 | F_F, F_C, F_U, F_S, F_T | Alias override for each command | |
 | F_NO_ALIASES | No aliases are created. See [Manual aliasing](#manual-aliasing) to create them manually. | 0 |
+| F_IGNORE_FILE | Path of the ignore file. See [Ignore file](#ignore-file). | `~/.fignore` |
 
 
 ### Manual aliasing
@@ -70,6 +71,22 @@ alias c=f::u
 alias d=f::s
 alias e=f::t
 ```
+
+
+### Ignore file
+
+Directories named like one of the lines in this file are skipped, when
+searching for files or directories. If yours has the following content:
+
+```
+.git
+._zinit
+```
+
+... any directory named `.git` or `._zinit` is skipped by the `c` command, and
+files inside it are skipped by the `f` command, regardless of the *show
+hidden* state. By default, a file named `~/.fignore` is searched for. Set
+`F_IGNORE_FILE` to specify a different path.
 
 
 # Keybindings

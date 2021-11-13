@@ -1,4 +1,5 @@
 f_highlight_cmd=${F_HIGHLIGHT_CMD:-'highlight --force -O ansi {}'}
+f_ignore_file=${F_IGNORE_FILE:-"$HOME/.fignore"}
 f_f_cmd=${F_F:-f}
 f_u_cmd=${F_U:-u}
 f_c_cmd=${F_C:-c}
@@ -76,15 +77,20 @@ Consult 'man fzf' for more keybindings."
     header=${header/:exact:/fuzzy}
   fi
 
+  # read in ignore file
+  if [ -f "$f_ignore_file" ]; then
+    local fignore=()
+    while IFS= read -r line; do
+      fignore+=(-o -name "$line")
+    done < "$f_ignore_file"
+  fi
+
   # this is the heart
   # find targets and pipe them to fzf
   # sed removes the './' in front of all entries
-  local out=$(find . \
-      ${find_opt[@]} \
-      -not \
-      -path "$path_opt" \
-      -mindepth 1 \
-      -maxdepth $depth \
+  local out=$(find . -mindepth 1 -maxdepth $depth \
+      \( -path "$path_opt" ${fignore[@]} \) -prune \
+      -o ${find_opt[@]} -print \
     2> /dev/null \
     | sed 's|^\./||' \
     | fzf ${fzf_opt[@]} \
