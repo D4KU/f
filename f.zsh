@@ -1,4 +1,5 @@
-f_highlight_cmd=${F_HIGHLIGHT_CMD:-'highlight --force -O ansi {}'}
+f_preview=${F_PREVIEW:-'highlight --force -O ansi {}'}
+c_preview=${C_PREVIEW:-'cd {} && ({ ls -d1 */ & ls -d1 .*/; }) 2> /dev/null'}
 f_ignore_file=${F_IGNORE_FILE:-"$HOME/.fignore"}
 f_f_cmd=${F_F:-f}
 f_u_cmd=${F_U:-u}
@@ -37,6 +38,7 @@ f::core() {
 ":header:
 Keybindings:
   :keyinsert:
+  $f_print_key\t\tExit and paste selection into command line
   $f_depth_dec_key\t\tDecrease search depth
   $f_depth_inc_key\t\tIncrease search depth
   $f_exact_key\t\tToggle fzf --exact option
@@ -156,7 +158,7 @@ f::f() {
   local find_opt=(-type f)
   local fzf_opt=(
     --multi
-    --preview "$f_highlight_cmd"
+    --preview "$f_preview"
     --expect=enter,$f_f_to_dir_key,${f_keys[@]}
   )
   local help_type='files'
@@ -207,7 +209,8 @@ f::c() {
   local header_tmpl=':exact: :sh: :depth: :pwd:'
   local find_opt=(-type d)
   local fzf_opt=(
-    +m
+    --no-multi
+    --preview "$c_preview"
     --expect=enter,left,right,$f_c_move_up_key,$f_c_move_down_key,${f_keys[@]}
   )
   local help_type='directories'

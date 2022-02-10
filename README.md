@@ -56,6 +56,8 @@ further customization:
 | F_F, F_C, F_U, F_S, F_T | Alias override for each command | |
 | F_NO_ALIASES | No aliases are created. See [Manual aliasing](#manual-aliasing) to create them manually. | 0 |
 | F_IGNORE_FILE | Path of the ignore file. See [Ignore file](#ignore-file). | `~/.fignore` |
+| F_PREVIEW | Preview command executed in `f` | `highlight`... |
+| C_PREVIEW | Preview command executed in `c` | ... `ls` ... |
 
 
 ### Manual aliasing
