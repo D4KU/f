@@ -79,12 +79,20 @@ Consult 'man fzf' for more keybindings."
     header=${header/:exact:/fuzzy}
   fi
 
-  # read in ignore file
+  local fignore=()
+
+  # read in gloal ignore file
   if [ -f "$f_ignore_file" ]; then
-    local fignore=()
     while IFS= read -r line; do
       fignore+=(-o -name "$line")
     done < "$f_ignore_file"
+  fi
+
+  # read in local ignore file
+  if [ -f "$PWD/.fignore" ]; then
+    while IFS= read -r line; do
+      fignore+=(-o -name "$line")
+    done < "$PWD/.fignore"
   fi
 
   # this is the heart
